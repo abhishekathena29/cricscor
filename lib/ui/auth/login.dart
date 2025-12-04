@@ -45,6 +45,7 @@ class MinimalLoginPage extends StatelessWidget {
               SizedBox(height: screenHeight * 0.05), // Responsive spacing
               // --- 2. Email Field ---
               _buildTextField(
+                controller: _emailController,
                 hintText: 'Email Address',
                 icon: Icons.email_outlined,
               ),
@@ -52,6 +53,7 @@ class MinimalLoginPage extends StatelessWidget {
 
               // --- 3. Password Field ---
               _buildTextField(
+                controller: _passController,
                 hintText: 'Password',
                 icon: Icons.lock_outline,
                 isPassword: true,
@@ -61,39 +63,45 @@ class MinimalLoginPage extends StatelessWidget {
               // --- 4. Login Button ---
               Consumer<AuthenProvider>(
                 builder: (context, provider, _) {
-                  return ElevatedButton(
-                    onPressed: () async {
-                      final res = await provider.signIn(
-                        email: _emailController.text,
-                        password: _passController.text,
-                      );
-                      if (context.mounted) {
-                        if (res) {
-                          pushAndRemoveuntilScreen(context, MainShell());
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Something went Wrong')),
-                          );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      backgroundColor: const Color(0xFF0D47A1), // Deep blue
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 5,
-                    ),
-                    child: const Text(
-                      'LOG IN',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  );
+                  return provider.loading
+                      ? Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          onPressed: () async {
+                            final res = await provider.signIn(
+                              email: _emailController.text,
+                              password: _passController.text,
+                            );
+                            if (context.mounted) {
+                              if (res) {
+                                pushAndRemoveuntilScreen(context, MainShell());
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Something went Wrong'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            backgroundColor: const Color(
+                              0xFF0D47A1,
+                            ), // Deep blue
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 5,
+                          ),
+                          child: const Text(
+                            'LOG IN',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        );
                 },
               ),
               const SizedBox(height: 20),
@@ -118,6 +126,7 @@ class MinimalLoginPage extends StatelessWidget {
 
   // Helper widget for consistent text field styling
   Widget _buildTextField({
+    required TextEditingController controller,
     required String hintText,
     required IconData icon,
     bool isPassword = false,
@@ -136,6 +145,7 @@ class MinimalLoginPage extends StatelessWidget {
         ],
       ),
       child: TextField(
+        controller: controller,
         obscureText: isPassword,
         keyboardType: isPassword
             ? TextInputType.text

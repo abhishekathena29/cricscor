@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:style/animations/on_tap_scale.dart';
 import 'package:style/extensions/context_extensions.dart';
 import 'package:style/text/app_text_style.dart';
 
-import '../sample_data.dart';
+import '../create/provider/create_provider.dart';
 import '../match/match_scoring_screen.dart';
 import '../navigation.dart';
 
 class MatchCard extends StatelessWidget {
-  final MatchCardData match;
+  final MatchItem match;
 
   const MatchCard({super.key, required this.match});
 
@@ -36,13 +37,26 @@ class MatchCard extends StatelessWidget {
     }
   }
 
+  String _timeLabel() {
+    if (match.status == MatchStatus.live && (match.runs > 0 || match.balls > 0)) {
+      return match.summary;
+    }
+    if (match.status == MatchStatus.completed && (match.runs > 0 || match.balls > 0)) {
+      return match.summary;
+    }
+    return DateFormat('dd MMM • hh:mm a').format(match.startTime);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
     return OnTapScale(
       onTap: () => pushScreen(
         context,
-        MatchScoringScreen(title: '${match.teamA} vs ${match.teamB}'),
+        MatchScoringScreen(
+          matchId: match.id,
+          title: '${match.teamA.name} vs ${match.teamB.name}',
+        ),
       ),
       child: Container(
         width: 280,
@@ -77,7 +91,7 @@ class MatchCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  match.format,
+                  match.formatLabel,
                   style: AppTextStyle.caption.copyWith(
                     color: colors.textSecondary,
                   ),
@@ -85,11 +99,11 @@ class MatchCard extends StatelessWidget {
               ],
             ),
             Text(
-              '${match.teamA} vs ${match.teamB}',
+              '${match.teamA.name} vs ${match.teamB.name}',
               style: AppTextStyle.subtitle2.copyWith(color: colors.textPrimary),
             ),
             Text(
-              match.summary,
+              _timeLabel(),
               style: AppTextStyle.body2.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: 6),
@@ -129,7 +143,7 @@ class MatchCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  match.time,
+                  DateFormat('EEE, dd MMM • hh:mm a').format(match.startTime),
                   style: AppTextStyle.body2.copyWith(
                     color: colors.textSecondary,
                   ),

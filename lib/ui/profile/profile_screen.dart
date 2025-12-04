@@ -1,5 +1,8 @@
+import 'package:cricscor/ui/auth/login.dart';
+import 'package:cricscor/ui/auth/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import 'package:style/animations/on_tap_scale.dart';
 import 'package:style/extensions/context_extensions.dart';
 import 'package:style/text/app_text_style.dart';
@@ -9,6 +12,8 @@ import '../sample_data.dart';
 import '../widgets/section_header.dart';
 import '../notifications/notifications_screen.dart';
 import '../settings/settings_screen.dart';
+import 'edit_profile_screen.dart';
+import 'provider/profile_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -19,53 +24,79 @@ class ProfileScreen extends StatelessWidget {
     final colors = context.colorScheme;
     return ColoredBox(
       color: colors.surface,
-      child: ListView(
-        padding: EdgeInsets.only(
-          top: padding.top + 12,
-          bottom: padding.bottom + 28,
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Profile',
-              style: AppTextStyle.header3.copyWith(color: colors.textPrimary),
+      child: StreamBuilder<UserProfile?>(
+        stream: context.read<ProfileProvider>().watchProfile(),
+        builder: (context, snapshot) {
+          final profile = snapshot.data;
+          return ListView(
+            padding: EdgeInsets.only(
+              top: padding.top + 12,
+              bottom: padding.bottom + 28,
             ),
-          ),
-          const SizedBox(height: 12),
-          _profileCard(context),
-          const SectionHeader(title: 'Quick actions'),
-          _quickActions(context),
-          const SectionHeader(title: 'Settings'),
-          ...profileActions.map((action) => _actionTile(context, action)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Profile',
+                  style: AppTextStyle.header3.copyWith(color: colors.textPrimary),
                 ),
-                side: BorderSide(color: colors.outline),
-                foregroundColor: colors.alert,
               ),
-              onPressed: () {},
-              icon: SvgPicture.asset(
-                'assets/images/ic_sign_out.svg',
-                width: 18,
-                height: 18,
-                colorFilter: ColorFilter.mode(colors.alert, BlendMode.srcIn),
+              const SizedBox(height: 12),
+              _profileCard(context, profile),
+              const SectionHeader(title: 'Quick actions'),
+              _quickActions(context, profile),
+              const SectionHeader(title: 'Settings'),
+              ...profileActions.map((action) => _actionTile(context, action)),
+              Consumer<AuthenProvider>(
+                builder: (context, provider, _) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        side: BorderSide(color: colors.outline),
+                        foregroundColor: colors.alert,
+                      ),
+                      onPressed: () async {
+                        await provider.signOut();
+
+                        if (context.mounted) {
+                          pushAndRemoveuntilScreen(context, MinimalLoginPage());
+                        }
+                      },
+                      icon: SvgPicture.asset(
+                        'assets/images/ic_sign_out.svg',
+                        width: 18,
+                        height: 18,
+                        colorFilter: ColorFilter.mode(
+                          colors.alert,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                      label: const Text('Sign out'),
+                    ),
+                  );
+                },
               ),
-              label: const Text('Sign out'),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _profileCard(BuildContext context) {
+  Widget _profileCard(BuildContext context, UserProfile? profile) {
     final colors = context.colorScheme;
+    final title = profile?.username ?? 'Loading user';
+    final subtitle = profile == null
+        ? 'Fetching profile...'
+        : '${profile.userType.toUpperCase()} • ${profile.city ?? 'Unknown'}';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -98,19 +129,19 @@ class ProfileScreen extends StatelessWidget {
                   spacing: 2,
                   children: [
                     Text(
-                      'Siddharth Sheth',
+                      title,
                       style: AppTextStyle.subtitle2.copyWith(
                         color: colors.textPrimary,
                       ),
                     ),
                     Text(
-                      'Opening batter • Ahmedabad',
+                      subtitle,
                       style: AppTextStyle.body2.copyWith(
                         color: colors.textSecondary,
                       ),
                     ),
                     Text(
-                      'siddharth@khelo.app',
+                      profile?.email ?? '',
                       style: AppTextStyle.caption.copyWith(
                         color: colors.textDisabled,
                       ),
@@ -118,7 +149,22 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.verified_rounded, color: colors.primary),
+              if (profile != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    profile.userType.toUpperCase(),
+                    style: AppTextStyle.caption.copyWith(
+                      color: colors.primary,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 14),
@@ -162,7 +208,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _quickActions(BuildContext context) {
+  Widget _quickActions(BuildContext context, UserProfile? profile) {
     final colors = context.colorScheme;
     final items = [
       ('Edit profile', 'assets/images/ic_edit.svg'),
@@ -176,7 +222,14 @@ class ProfileScreen extends StatelessWidget {
             .map(
               (item) => Expanded(
                 child: OnTapScale(
-                  onTap: () {},
+                  onTap: () {
+                    if (item.$1 == 'Edit profile' && profile != null) {
+                      pushScreen(
+                        context,
+                        EditProfileScreen(profile: profile),
+                      );
+                    }
+                  },
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 6),
                     padding: const EdgeInsets.symmetric(

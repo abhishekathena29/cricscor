@@ -1,6 +1,6 @@
 # style
 
-The `style` module provides a centralized location for app styling. It includes shared fonts, themes, and other styling elements used throughout the Khelo app.
+The `style` module provides a centralized location for app styling. It includes shared fonts, themes, and other styling elements used throughout the CricScor app.
 
 ## Key Features
 

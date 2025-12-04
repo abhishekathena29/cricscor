@@ -14,7 +14,7 @@ class SettingsScreen extends StatelessWidget {
       ('Show advanced stats', true),
     ];
     final items = [
-      ('About Khelo', Icons.info_outline),
+      ('About CricScor', Icons.info_outline),
       ('Privacy policy', Icons.privacy_tip_outlined),
       ('Terms of service', Icons.article_outlined),
       ('Contact support', Icons.support_agent_outlined),

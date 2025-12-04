@@ -1,14 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:style/extensions/context_extensions.dart';
 import 'package:style/text/app_text_style.dart';
 
-class CreateTournamentScreen extends StatelessWidget {
+import 'provider/create_provider.dart';
+
+class CreateTournamentScreen extends StatefulWidget {
   const CreateTournamentScreen({super.key});
 
   @override
+  State<CreateTournamentScreen> createState() => _CreateTournamentScreenState();
+}
+
+class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
+  final _nameController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
+  final _teamsController = TextEditingController(text: '12');
+  final _oversController = TextEditingController(text: '20');
+  final _organizerController = TextEditingController();
+  final _umpireController = TextEditingController();
+  final _scorerController = TextEditingController();
+
+  DateTime? _startDate;
+  DateTime? _endDate;
+  String _format = 'League';
+  String _ballType = 'Leather';
+  bool _superOver = true;
+  bool _thirdUmpire = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _locationController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    _teamsController.dispose();
+    _oversController.dispose();
+    _organizerController.dispose();
+    _umpireController.dispose();
+    _scorerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickStartDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? now,
+      firstDate: now.subtract(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (date != null) {
+      setState(() {
+        _startDate = date;
+        _startDateController.text = DateFormat('dd MMM yyyy').format(date);
+        if (_endDate != null && _endDate!.isBefore(date)) {
+          _endDate = date;
+          _endDateController.text = DateFormat('dd MMM yyyy').format(date);
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndDate() async {
+    final now = DateTime.now();
+    final firstDate = _startDate ?? now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? firstDate,
+      firstDate: firstDate,
+      lastDate: firstDate.add(const Duration(days: 365)),
+    );
+    if (date != null) {
+      setState(() {
+        _endDate = date;
+        _endDateController.text = DateFormat('dd MMM yyyy').format(date);
+      });
+    }
+  }
+
+  Future<void> _saveTournament(CreateProvider provider) async {
+    if (_nameController.text.trim().isEmpty) {
+      _showSnack('Tournament name is required');
+      return;
+    }
+    if (_locationController.text.trim().isEmpty) {
+      _showSnack('Location is required');
+      return;
+    }
+    if (_startDate == null || _endDate == null) {
+      _showSnack('Select start and end dates');
+      return;
+    }
+    if (_endDate!.isBefore(_startDate!)) {
+      _showSnack('End date cannot be before start date');
+      return;
+    }
+    final teamsCount = int.tryParse(_teamsController.text.trim());
+    final overs = int.tryParse(_oversController.text.trim());
+    if (teamsCount == null || teamsCount <= 0) {
+      _showSnack('Enter a valid number of teams');
+      return;
+    }
+    if (overs == null || overs <= 0) {
+      _showSnack('Enter overs for each innings');
+      return;
+    }
+
+    try {
+      await provider.createTournament(
+        name: _nameController.text,
+        location: _locationController.text,
+        startDate: _startDate!,
+        endDate: _endDate!,
+        format: _format,
+        ballType: _ballType,
+        teamsCount: teamsCount,
+        overs: overs,
+        superOver: _superOver,
+        thirdUmpire: _thirdUmpire,
+        organizer: _organizerController.text,
+        umpire: _umpireController.text,
+        scorer: _scorerController.text,
+      );
+      if (!mounted) return;
+      _showSnack('Tournament published');
+      setState(() {
+        _startDate = null;
+        _endDate = null;
+        _format = 'League';
+        _ballType = 'Leather';
+        _superOver = true;
+        _thirdUmpire = true;
+      });
+      _nameController.clear();
+      _locationController.clear();
+      _startDateController.clear();
+      _endDateController.clear();
+      _teamsController.text = '12';
+      _oversController.text = '20';
+      _organizerController.clear();
+      _umpireController.clear();
+      _scorerController.clear();
+    } catch (_) {
+      if (!mounted) return;
+      _showSnack(provider.error ?? 'Failed to publish tournament');
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final createProvider = context.watch<CreateProvider>();
     final colors = context.colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Create tournament')),
       body: SafeArea(
@@ -23,25 +175,41 @@ class CreateTournamentScreen extends StatelessWidget {
                 'Tournament basics',
                 Column(
                   children: [
-                    _textField(context, 'Name', 'Gully Premier League'),
-                    _textField(context, 'Location', 'Ahmedabad, India'),
+                    _textField(
+                      context,
+                      controller: _nameController,
+                      label: 'Name',
+                      hint: 'Gully Premier League',
+                    ),
+                    _textField(
+                      context,
+                      controller: _locationController,
+                      label: 'Location',
+                      hint: 'Ahmedabad, India',
+                    ),
                     Row(
                       children: [
                         Expanded(
                           child: _textField(
                             context,
-                            'Start date',
-                            '20 Jan 2024',
+                            controller: _startDateController,
+                            label: 'Start date',
+                            hint: '20 Jan 2024',
                             icon: 'assets/images/ic_calendar.svg',
+                            readOnly: true,
+                            onTap: _pickStartDate,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _textField(
                             context,
-                            'End date',
-                            '02 Feb 2024',
+                            controller: _endDateController,
+                            label: 'End date',
+                            hint: '02 Feb 2024',
                             icon: 'assets/images/ic_calendar.svg',
+                            readOnly: true,
+                            onTap: _pickEndDate,
                           ),
                         ),
                       ],
@@ -54,21 +222,55 @@ class CreateTournamentScreen extends StatelessWidget {
                 'Structure',
                 Column(
                   children: [
-                    _pillRow(context, 'Format', [
-                      'Knockout',
-                      'League',
-                      'Groups',
-                    ], 1),
-                    _pillRow(context, 'Ball type', ['Leather', 'Tennis'], 0),
+                    _pillRow(
+                      context,
+                      'Format',
+                      ['Knockout', 'League', 'Groups'],
+                      _format,
+                      onSelect: (value) => setState(() => _format = value),
+                    ),
+                    _pillRow(
+                      context,
+                      'Ball type',
+                      ['Leather', 'Tennis'],
+                      _ballType,
+                      onSelect: (value) => setState(() => _ballType = value),
+                    ),
                     Row(
                       children: [
-                        Expanded(child: _textField(context, 'Teams', '12')),
+                        Expanded(
+                          child: _textField(
+                            context,
+                            controller: _teamsController,
+                            label: 'Teams',
+                            hint: '12',
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
                         const SizedBox(width: 12),
-                        Expanded(child: _textField(context, 'Overs', '20')),
+                        Expanded(
+                          child: _textField(
+                            context,
+                            controller: _oversController,
+                            label: 'Overs',
+                            hint: '20',
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
                       ],
                     ),
-                    _switchRow(context, 'Allow super over in knockout'),
-                    _switchRow(context, 'Enable third umpire review'),
+                    _switchRow(
+                      context,
+                      'Allow super over in knockout',
+                      value: _superOver,
+                      onChanged: (value) => setState(() => _superOver = value),
+                    ),
+                    _switchRow(
+                      context,
+                      'Enable third umpire review',
+                      value: _thirdUmpire,
+                      onChanged: (value) => setState(() => _thirdUmpire = value),
+                    ),
                   ],
                 ),
               ),
@@ -78,13 +280,35 @@ class CreateTournamentScreen extends StatelessWidget {
                 Column(
                   spacing: 12,
                   children: [
-                    _picker(context, 'Organizer', 'Sidharth Sheth'),
-                    _picker(context, 'Umpire', 'Assign later'),
-                    _picker(context, 'Scorer', 'Invite scorer'),
+                    _pickerField(
+                      context,
+                      controller: _organizerController,
+                      label: 'Organizer',
+                      hint: 'Sidharth Sheth',
+                    ),
+                    _pickerField(
+                      context,
+                      controller: _umpireController,
+                      label: 'Umpire',
+                      hint: 'Assign later',
+                    ),
+                    _pickerField(
+                      context,
+                      controller: _scorerController,
+                      label: 'Scorer',
+                      hint: 'Invite scorer',
+                    ),
                   ],
                 ),
               ),
-              _primaryButton(context, 'Publish tournament'),
+              _primaryButton(
+                context,
+                'Publish tournament',
+                loading: createProvider.savingTournament,
+                onPressed: createProvider.savingTournament
+                    ? null
+                    : () => _saveTournament(createProvider),
+              ),
             ],
           ),
         ),
@@ -117,10 +341,14 @@ class CreateTournamentScreen extends StatelessWidget {
   }
 
   Widget _textField(
-    BuildContext context,
-    String label,
-    String hint, {
+    BuildContext context, {
+    required TextEditingController controller,
+    required String label,
+    required String hint,
     String? icon,
+    bool readOnly = false,
+    TextInputType? keyboardType,
+    VoidCallback? onTap,
   }) {
     final colors = context.colorScheme;
     return Column(
@@ -132,6 +360,10 @@ class CreateTournamentScreen extends StatelessWidget {
           style: AppTextStyle.body2.copyWith(color: colors.textSecondary),
         ),
         TextField(
+          controller: controller,
+          readOnly: readOnly || onTap != null,
+          onTap: onTap,
+          keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: icon == null
@@ -170,8 +402,9 @@ class CreateTournamentScreen extends StatelessWidget {
     BuildContext context,
     String label,
     List<String> pills,
-    int selected,
-  ) {
+    String selected, {
+    required ValueChanged<String> onSelect,
+  }) {
     final colors = context.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,21 +419,30 @@ class CreateTournamentScreen extends StatelessWidget {
           runSpacing: 8,
           children: List.generate(
             pills.length,
-            (index) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: index == selected ? colors.primary : colors.containerLow,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: index == selected ? colors.primary : colors.outline,
+            (index) => InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: () => onSelect(pills[index]),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: pills[index] == selected
+                      ? colors.primary
+                      : colors.containerLow,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: pills[index] == selected
+                        ? colors.primary
+                        : colors.outline,
+                  ),
                 ),
-              ),
-              child: Text(
-                pills[index],
-                style: AppTextStyle.body2.copyWith(
-                  color: index == selected
-                      ? colors.onPrimary
-                      : colors.textSecondary,
+                child: Text(
+                  pills[index],
+                  style: AppTextStyle.body2.copyWith(
+                    color: pills[index] == selected
+                        ? colors.onPrimary
+                        : colors.textSecondary,
+                  ),
                 ),
               ),
             ),
@@ -210,12 +452,17 @@ class CreateTournamentScreen extends StatelessWidget {
     );
   }
 
-  Widget _switchRow(BuildContext context, String label) {
+  Widget _switchRow(
+    BuildContext context,
+    String label, {
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
     final colors = context.colorScheme;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      value: true,
-      onChanged: (_) {},
+      value: value,
+      onChanged: onChanged,
       title: Text(
         label,
         style: AppTextStyle.body1.copyWith(color: colors.textPrimary),
@@ -223,7 +470,12 @@ class CreateTournamentScreen extends StatelessWidget {
     );
   }
 
-  Widget _picker(BuildContext context, String label, String value) {
+  Widget _pickerField(
+    BuildContext context, {
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+  }) {
     final colors = context.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,29 +485,37 @@ class CreateTournamentScreen extends StatelessWidget {
           label,
           style: AppTextStyle.body2.copyWith(color: colors.textSecondary),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colors.outline),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  value,
-                  style: AppTextStyle.body1.copyWith(color: colors.textPrimary),
-                ),
-              ),
-              Icon(Icons.chevron_right, color: colors.textDisabled),
-            ],
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: hint,
+            suffixIcon: Icon(Icons.chevron_right, color: colors.textDisabled),
+            filled: true,
+            fillColor: colors.surface,
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: colors.outline),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: colors.primary),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _primaryButton(BuildContext context, String text) {
+  Widget _primaryButton(
+    BuildContext context,
+    String text, {
+    required VoidCallback? onPressed,
+    bool loading = false,
+  }) {
     final colors = context.colorScheme;
     return SizedBox(
       width: double.infinity,
@@ -268,8 +528,14 @@ class CreateTournamentScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
         ),
-        onPressed: () {},
-        child: Text(text),
+        onPressed: onPressed,
+        child: loading
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(text),
       ),
     );
   }

@@ -138,10 +138,10 @@ class _MinimalSignupPageState extends State<MinimalSignupPage> {
                       : ElevatedButton(
                           onPressed: () async {
                             final res = await provider.signUp(
-                              email: _emailController.text,
+                              email: _emailController.text.trim(),
                               password: _passController.text,
                               userType: _userType,
-                              username: _userType,
+                              username: _usernameController.text.trim(),
                             );
                             if (context.mounted) {
                               if (res) {

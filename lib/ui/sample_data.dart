@@ -173,7 +173,7 @@ const statTiles = [
   StatTileData(
     label: 'Matches',
     value: '164',
-    helper: 'Recorded in Khelo',
+    helper: 'Recorded in CricScor',
     iconPath: 'assets/images/ic_tournaments.svg',
   ),
   StatTileData(

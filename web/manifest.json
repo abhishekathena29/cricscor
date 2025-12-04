@@ -1,6 +1,6 @@
 {
-    "name": "cricscor",
-    "short_name": "cricscor",
+    "name": "CricScor",
+    "short_name": "CricScor",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

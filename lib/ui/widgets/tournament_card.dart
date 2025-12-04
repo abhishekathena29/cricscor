@@ -4,10 +4,10 @@ import 'package:style/animations/on_tap_scale.dart';
 import 'package:style/extensions/context_extensions.dart';
 import 'package:style/text/app_text_style.dart';
 
-import '../sample_data.dart';
+import '../create/provider/create_provider.dart';
 
 class TournamentCard extends StatelessWidget {
-  final TournamentCardData data;
+  final TournamentItem data;
 
   const TournamentCard({super.key, required this.data});
 
@@ -96,7 +96,7 @@ class TournamentCard extends StatelessWidget {
             const Divider(height: 1),
             Row(
               children: [
-                _pill(context, '${data.teams} Teams'),
+                _pill(context, '${data.teamsCount} Teams'),
                 const SizedBox(width: 8),
                 _pill(context, '${data.matches} Matches'),
               ],

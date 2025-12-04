@@ -59,17 +59,20 @@ class AuthenProvider with ChangeNotifier {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       if (userCredential.user != null) {
-        await FirebaseFirestore.instance.doc(userCredential.user!.uid).set({
-          "email": email,
-          "username": username,
-          "userType": userType,
-          "createdAt": Timestamp.now(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+              "email": email,
+              "username": username,
+              "userType": userType,
+              "createdAt": Timestamp.now(),
+            });
       }
       return true;
     } on FirebaseAuthException catch (e) {
       _error = e.message;
-      print(_error);
+      print(e.toString());
       return false;
     } catch (e) {
       print(_error);
