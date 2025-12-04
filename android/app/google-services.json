@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "752876696495",
+    "project_id": "cricscor-c1438",
+    "storage_bucket": "cricscor-c1438.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:752876696495:android:0312f437161e8c35d7755a",
+        "android_client_info": {
+          "package_name": "com.example.cricscor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "752876696495-0ts8bqvfd1n1rfacp9qdt5ignef3hmr0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1ZkwjxSh5U1_k29bh1THoDGyLC1enlps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "752876696495-0ts8bqvfd1n1rfacp9qdt5ignef3hmr0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "752876696495-5cioeseupe3klfgbssetot17lri1tqmu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.cricscor"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
